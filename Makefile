@@ -1,4 +1,4 @@
-.PHONY: setup setup-backup up down restart logs status update backup restore clean help
+.PHONY: setup setup-backup up down restart logs logs-openclaw logs-litellm status update backup restore cli config-get config-set channels-status clean help
 
 COMPOSE := docker compose
 SHELL := /bin/bash
