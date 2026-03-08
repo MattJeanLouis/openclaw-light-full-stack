@@ -98,7 +98,7 @@ if [ -f "$SELECTED_DIR/database.sql.gz" ]; then
     done
 
     info "Restoring database dump..."
-    gunzip -c "$SELECTED_DIR/database.sql.gz" | docker compose exec -T postgres psql -U "${POSTGRES_USER:-openclaw}" -d "${POSTGRES_DB:-litellm}" &>/dev/null
+    gunzip -c "$SELECTED_DIR/database.sql.gz" | docker compose exec -T postgres psql -U "${POSTGRES_USER:-openclaw}" -d postgres &>/dev/null
     success "Database restored"
 else
     warn "No database dump found in backup — skipping database restore"

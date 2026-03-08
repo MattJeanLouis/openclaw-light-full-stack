@@ -68,11 +68,17 @@ services:
         condition: service_healthy
     ports:
       - "${OPENCLAW_PORT:-18789}:18789"
-    command: ["node", "dist/index.js", "gateway", "--bind", "${OPENCLAW_BIND:-lan}", "--port", "18789"]
+    command: ["node", "openclaw.mjs", "gateway", "--bind", "${OPENCLAW_BIND:-lan}", "--port", "18789", "--allow-unconfigured"]
+    cap_drop:
+      - NET_RAW
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
     environment:
       HOME: /home/node
       TERM: xterm-256color
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:?Set OPENCLAW_GATEWAY_TOKEN in .env}
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
       OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: ${OPENCLAW_ALLOW_INSECURE_PRIVATE_WS:-}
     volumes:
       - openclaw_data:/home/node/.openclaw
@@ -125,9 +131,11 @@ services:
       DIUN_WATCH_SCHEDULE: ${DIUN_WATCH_SCHEDULE:-0 */6 * * *}
       DIUN_PROVIDERS_DOCKER: "true"
       DIUN_WATCH_FIRSTCHECKNOTIF: "true"
+      DIUN_NOTIF_SCRIPT_PATH: /data/notify.sh
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - diun_data:/data
+      - ./scripts/diun-notify.sh:/data/notify.sh:ro
     networks:
       - internal
 

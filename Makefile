@@ -49,16 +49,16 @@ restore: ## Restore from backup
 
 # OpenClaw CLI shortcuts
 cli: ## Open OpenClaw CLI
-	$(COMPOSE) exec openclaw node dist/index.js
+	$(COMPOSE) exec openclaw openclaw
 
 config-get: ## Show config value (usage: make config-get KEY=agents.defaults.model)
-	$(COMPOSE) exec openclaw node dist/index.js config get $(KEY)
+	$(COMPOSE) exec openclaw openclaw config get $(KEY)
 
 config-set: ## Set config value (usage: make config-set KEY=... VALUE=...)
-	$(COMPOSE) exec openclaw node dist/index.js config set $(KEY) $(VALUE)
+	$(COMPOSE) exec openclaw openclaw config set $(KEY) $(VALUE)
 
 channels-status: ## Show channel connection status
-	$(COMPOSE) exec openclaw node dist/index.js channels status --probe
+	$(COMPOSE) exec openclaw openclaw channels status --probe
 
 # Cleanup
 clean: ## Remove containers, volumes, and build artifacts (DESTRUCTIVE)

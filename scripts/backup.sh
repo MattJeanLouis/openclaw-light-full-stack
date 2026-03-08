@@ -25,6 +25,14 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 cd "$PROJECT_DIR"
 
+# Source .env for POSTGRES_USER and other vars
+if [ -f "$PROJECT_DIR/.env" ]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "$PROJECT_DIR/.env"
+    set +a
+fi
+
 TIMESTAMP="$(date +%Y-%m-%d_%H%M%S)"
 BACKUP_DIR="$PROJECT_DIR/backups/$TIMESTAMP"
 
@@ -34,18 +42,8 @@ info "Starting backup to $BACKUP_DIR"
 
 # ── Database dump ─────────────────────────────────────────────────────
 info "Dumping PostgreSQL database..."
-if docker compose exec -T postgres pg_dumpall -U "${POSTGRES_USER:-openclaw}" 2>/dev/null | gzip > "$BACKUP_DIR/database.sql.gz"; then
-    success "Database dump saved"
-else
-    # Try reading POSTGRES_USER from .env
-    PG_USER="openclaw"
-    if [ -f "$PROJECT_DIR/.env" ]; then
-        PG_USER=$(grep -E '^POSTGRES_USER=' "$PROJECT_DIR/.env" | cut -d= -f2 || echo "openclaw")
-        [ -z "$PG_USER" ] && PG_USER="openclaw"
-    fi
-    docker compose exec -T postgres pg_dumpall -U "$PG_USER" 2>/dev/null | gzip > "$BACKUP_DIR/database.sql.gz"
-    success "Database dump saved"
-fi
+docker compose exec -T postgres pg_dumpall -U "${POSTGRES_USER:-openclaw}" 2>/dev/null | gzip > "$BACKUP_DIR/database.sql.gz"
+success "Database dump saved"
 
 # ── Config files ──────────────────────────────────────────────────────
 info "Backing up configuration files..."

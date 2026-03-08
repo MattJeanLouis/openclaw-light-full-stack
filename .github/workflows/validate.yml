@@ -17,7 +17,8 @@ jobs:
         run: |
           for f in docker-compose.yml .env.example Makefile CLAUDE.md README.md \
                    config/litellm.yaml config/openclaw.json config/Caddyfile \
-                   scripts/setup.sh scripts/update.sh scripts/backup.sh scripts/restore.sh; do
+                   scripts/setup.sh scripts/setup-backup.sh scripts/update.sh \
+                   scripts/backup.sh scripts/restore.sh scripts/diun-notify.sh; do
             test -f "$f" || { echo "MISSING: $f"; exit 1; }
           done
       - name: Check scripts are executable

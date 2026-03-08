@@ -198,7 +198,7 @@ fi
 # Read back values from .env
 source "$ENV_FILE"
 
-HOST_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+HOST_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || ipconfig getifaddr en0 2>/dev/null || echo "localhost")
 PORT="${OPENCLAW_PORT:-18789}"
 
 echo ""
@@ -208,7 +208,6 @@ echo -e "${BOLD}╚════════════════════�
 echo ""
 echo -e "  ${BOLD}Gateway URL:${NC}   http://${HOST_IP}:${PORT}"
 echo -e "  ${BOLD}Gateway Token:${NC} ${OPENCLAW_GATEWAY_TOKEN}"
-echo -e "  ${BOLD}LiteLLM UI:${NC}    http://${HOST_IP}:4000/ui"
 echo ""
 echo -e "  ${BOLD}Useful commands:${NC}"
 echo "    make status          — Check service health"
