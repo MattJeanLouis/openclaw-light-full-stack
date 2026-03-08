@@ -1,0 +1,27 @@
+name: Validate
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate docker-compose.yml
+        run: docker compose config --quiet
+      - name: Validate YAML configs
+        run: python3 -c "import yaml; yaml.safe_load(open('config/litellm.yaml'))"
+      - name: Check required files exist
+        run: |
+          for f in docker-compose.yml .env.example Makefile CLAUDE.md README.md \
+                   config/litellm.yaml config/openclaw.json config/Caddyfile \
+                   scripts/setup.sh scripts/update.sh scripts/backup.sh scripts/restore.sh; do
+            test -f "$f" || { echo "MISSING: $f"; exit 1; }
+          done
+      - name: Check scripts are executable
+        run: |
+          for f in scripts/*.sh; do
+            test -x "$f" || { echo "NOT EXECUTABLE: $f"; exit 1; }
+          done
