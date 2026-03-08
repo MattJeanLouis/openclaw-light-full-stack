@@ -1,0 +1,137 @@
+x-common: &common
+  restart: unless-stopped
+  init: true
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  pg_data:
+  openclaw_data:
+  caddy_data:
+  caddy_config:
+  diun_data:
+
+services:
+  # ── Core services (always active) ──────────────────────────────────
+
+  postgres:
+    <<: *common
+    image: pgvector/pgvector:0.8.0-pg17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-openclaw}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-litellm}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-openclaw}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  litellm:
+    <<: *common
+    image: ghcr.io/berriai/litellm:main-stable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-openclaw}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-litellm}
+      STORE_MODEL_IN_DB: "True"
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?Set LITELLM_MASTER_KEY in .env}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    volumes:
+      - ./config/litellm.yaml:/app/config.yaml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4000/health/readiness || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - internal
+
+  openclaw:
+    <<: *common
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}
+    depends_on:
+      litellm:
+        condition: service_healthy
+    ports:
+      - "${OPENCLAW_PORT:-18789}:18789"
+    command: ["openclaw", "gateway", "run", "--bind", "${OPENCLAW_BIND:-lan}", "--port", "18789"]
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:?Set OPENCLAW_GATEWAY_TOKEN in .env}
+      OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: ${OPENCLAW_ALLOW_INSECURE_PRIVATE_WS:-}
+    volumes:
+      - openclaw_data:/home/node/.openclaw
+      - ./config/openclaw.json:/home/node/.openclaw/openclaw.json
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:18789/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - internal
+
+  # ── Profile services ───────────────────────────────────────────────
+
+  caddy:
+    <<: *common
+    profiles: ["proxy"]
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - internal
+
+  cloudflared:
+    <<: *common
+    profiles: ["tunnel"]
+    image: cloudflare/cloudflared:latest
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env}
+    networks:
+      - internal
+
+  diun:
+    <<: *common
+    profiles: ["notify"]
+    image: crazymax/diun:latest
+    environment:
+      DIUN_WATCH_SCHEDULE: ${DIUN_WATCH_SCHEDULE:-0 */6 * * *}
+      DIUN_PROVIDERS_DOCKER: "true"
+      DIUN_WATCH_FIRSTCHECKNOTIF: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - diun_data:/data
+    networks:
+      - internal
+
+  backup:
+    <<: *common
+    profiles: ["backup"]
+    image: rclone/rclone:latest
+    volumes:
+      - ./config/rclone.conf:/config/rclone/rclone.conf:ro
+      - ./backups:/backups
+    networks:
+      - internal
