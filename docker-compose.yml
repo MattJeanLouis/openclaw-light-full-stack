@@ -120,6 +120,9 @@ services:
     command: tunnel run
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      openclaw:
+        condition: service_healthy
     networks:
       - internal
 

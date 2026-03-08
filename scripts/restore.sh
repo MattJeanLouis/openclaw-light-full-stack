@@ -20,6 +20,14 @@ BACKUPS_DIR="$PROJECT_DIR/backups"
 
 cd "$PROJECT_DIR"
 
+# Source .env for POSTGRES_USER and other vars
+if [ -f "$PROJECT_DIR/.env" ]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "$PROJECT_DIR/.env"
+    set +a
+fi
+
 echo ""
 echo -e "${BOLD}OpenClaw Restore${NC}"
 echo ""
@@ -104,24 +112,31 @@ else
     warn "No database dump found in backup — skipping database restore"
 fi
 
-# ── Restore OpenClaw data ────────────────────────────────────────────
+# ── Start all services ───────────────────────────────────────────────
+info "Starting all services..."
+docker compose up -d
+
+# ── Restore OpenClaw data (after services are up) ────────────────────
 if [ -d "$SELECTED_DIR/openclaw-data" ]; then
+    info "Waiting for OpenClaw container to be ready..."
+    TIMEOUT=30
+    ELAPSED=0
+    while [ $ELAPSED -lt $TIMEOUT ]; do
+        if docker compose exec -T openclaw true &>/dev/null; then
+            break
+        fi
+        sleep 2
+        ELAPSED=$((ELAPSED + 2))
+    done
+
     info "Restoring OpenClaw data (agents, identity)..."
-    docker compose up -d openclaw
-    sleep 5
     if [ -d "$SELECTED_DIR/openclaw-data/agents" ]; then
         docker compose cp "$SELECTED_DIR/openclaw-data/agents" openclaw:/home/node/.openclaw/agents 2>/dev/null && success "Restored agents data" || warn "Could not restore agents data"
     fi
     if [ -d "$SELECTED_DIR/openclaw-data/identity" ]; then
         docker compose cp "$SELECTED_DIR/openclaw-data/identity" openclaw:/home/node/.openclaw/identity 2>/dev/null && success "Restored identity data" || warn "Could not restore identity data"
     fi
-else
-    warn "No OpenClaw data found in backup — skipping agent/identity restore"
 fi
-
-# ── Start all services ───────────────────────────────────────────────
-info "Starting all services..."
-docker compose up -d
 
 # ── Wait for healthchecks ─────────────────────────────────────────────
 info "Waiting for services to become healthy..."
