@@ -73,8 +73,9 @@ fi
 # ── Google Drive sync via rclone ──────────────────────────────────────
 if [ -f "$PROJECT_DIR/config/rclone.conf" ]; then
     info "Syncing backup to Google Drive via rclone..."
+    REMOTE="${RCLONE_REMOTE:-gdrive}"
     docker compose run --rm -v "$PROJECT_DIR/backups:/backups:ro" backup \
-        sync /backups "gdrive:openclaw-backups" \
+        sync /backups "${REMOTE}:openclaw-backups" \
         --config /config/rclone/rclone.conf 2>/dev/null \
         && success "Backup synced to Google Drive" \
         || warn "Google Drive sync failed — backup is still saved locally"

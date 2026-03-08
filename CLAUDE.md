@@ -22,7 +22,8 @@ directly and confidently.
 │   ├── update.sh         # Pull + progressive restart + rollback
 │   ├── backup.sh         # DB dump + config snapshot + rclone sync
 │   ├── restore.sh        # Interactive restore from local backup
-│   └── setup-backup.sh   # Configure rclone for Google Drive
+│   ├── setup-backup.sh   # Configure rclone for Google Drive
+│   └── diun-notify.sh    # Diun notification script (writes updates.json)
 ├── docs/
 │   └── architecture.md   # Service diagram, data flow, security
 ├── .github/
@@ -89,8 +90,11 @@ docker compose up -d
 | `POSTGRES_USER` | — | `openclaw` | PostgreSQL user |
 | `POSTGRES_DB` | — | `litellm` | PostgreSQL database name |
 | `COMPOSE_PROFILES` | — | (empty) | Comma-separated: `proxy`, `tunnel`, `notify`, `backup` |
+| `OPENCLAW_ALLOW_INSECURE_PRIVATE_WS` | — | (empty) | Allow insecure WebSocket on private networks |
 | `CLOUDFLARE_TUNNEL_TOKEN` | If profile `tunnel` | — | Cloudflare Tunnel token |
 | `DOMAIN` | If profile `proxy` | `localhost` | Domain for Caddy HTTPS |
+| `DIUN_WATCH_SCHEDULE` | — | `0 */6 * * *` | Diun update check cron schedule |
+| `RCLONE_REMOTE` | — | `gdrive` | rclone remote name for backup sync |
 
 ### config/openclaw.json — OpenClaw gateway config
 
@@ -200,7 +204,10 @@ litellm_settings:
   max_budget: 100.0        # USD monthly budget
   budget_duration: "monthly"
 ```
-Or manage via LiteLLM admin UI at `http://<host>:4000/ui`.
+Or manage via LiteLLM API from inside the Docker network:
+```bash
+docker compose exec openclaw curl -s http://litellm:4000/budget/info -H "Authorization: Bearer $LITELLM_MASTER_KEY"
+```
 
 ### config/litellm.yaml — LiteLLM proxy config
 
@@ -275,7 +282,7 @@ docker compose ps -a         # Include stopped containers
 ```bash
 make cli                     # Then run: doctor
 # Or directly:
-docker compose exec openclaw node dist/index.js doctor
+docker compose exec openclaw openclaw doctor
 
 # Health endpoint:
 curl http://localhost:18789/healthz
@@ -287,10 +294,8 @@ curl http://localhost:18789/healthz
 make logs-litellm            # Check for API key errors
 # Verify config is mounted:
 docker compose exec litellm cat /app/config.yaml
-# Test model directly:
-curl http://localhost:4000/v1/models -H "Authorization: Bearer $LITELLM_MASTER_KEY"
-# Check LiteLLM admin UI:
-# http://<host>:4000/ui
+# Test model directly (from inside Docker network):
+docker compose exec openclaw curl -s http://litellm:4000/v1/models -H "Authorization: Bearer $LITELLM_MASTER_KEY"
 ```
 
 #### PostgreSQL issues

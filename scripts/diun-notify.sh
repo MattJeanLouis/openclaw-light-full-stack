@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # Diun notification script
 # Called when a Docker image update is detected.
 # Writes to /data/updates.json so OpenClaw or scripts can read it.

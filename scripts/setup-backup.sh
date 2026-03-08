@@ -42,7 +42,7 @@ if [ -f "$RCLONE_CONF" ]; then
     if docker run --rm \
         -v "$PROJECT_DIR/config:/config/rclone:ro" \
         rclone/rclone:latest \
-        lsd "gdrive:" --config /config/rclone/rclone.conf 2>/dev/null; then
+        lsd "${RCLONE_REMOTE:-gdrive}:" --config /config/rclone/rclone.conf 2>/dev/null; then
         echo ""
         success "Google Drive connection successful!"
         echo ""
@@ -55,7 +55,7 @@ if [ -f "$RCLONE_CONF" ]; then
         echo ""
         warn "Could not list Google Drive contents."
         warn "The rclone config was saved, but the connection test failed."
-        warn "Check your remote name matches 'gdrive' or edit scripts/backup.sh"
+        warn "Check your remote name matches 'gdrive' or set RCLONE_REMOTE in .env"
     fi
 else
     error "No rclone.conf was created. Run this command again to retry."

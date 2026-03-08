@@ -104,6 +104,21 @@ else
     warn "No database dump found in backup — skipping database restore"
 fi
 
+# ── Restore OpenClaw data ────────────────────────────────────────────
+if [ -d "$SELECTED_DIR/openclaw-data" ]; then
+    info "Restoring OpenClaw data (agents, identity)..."
+    docker compose up -d openclaw
+    sleep 5
+    if [ -d "$SELECTED_DIR/openclaw-data/agents" ]; then
+        docker compose cp "$SELECTED_DIR/openclaw-data/agents" openclaw:/home/node/.openclaw/agents 2>/dev/null && success "Restored agents data" || warn "Could not restore agents data"
+    fi
+    if [ -d "$SELECTED_DIR/openclaw-data/identity" ]; then
+        docker compose cp "$SELECTED_DIR/openclaw-data/identity" openclaw:/home/node/.openclaw/identity 2>/dev/null && success "Restored identity data" || warn "Could not restore identity data"
+    fi
+else
+    warn "No OpenClaw data found in backup — skipping agent/identity restore"
+fi
+
 # ── Start all services ───────────────────────────────────────────────
 info "Starting all services..."
 docker compose up -d
