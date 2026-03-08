@@ -1,0 +1,21 @@
+# Secrets
+.env
+config/rclone.conf
+
+# OpenClaw sources (cloned at build time)
+.openclaw-src/
+
+# Runtime data
+data/
+backups/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
