@@ -1,0 +1,48 @@
+{
+  gateway: {
+    mode: "local",
+    bind: "lan",
+  },
+  agents: {
+    defaults: {
+      model: {
+        primary: "litellm/gpt-4o-mini",
+        fallbacks: ["litellm/gpt-4o"],
+      },
+      models: {
+        "litellm/gpt-4o-mini": { alias: "Mini" },
+        "litellm/gpt-4o": { alias: "GPT-4o" },
+      },
+    },
+  },
+  models: {
+    mode: "merge",
+    providers: {
+      litellm: {
+        baseUrl: "http://litellm:4000/v1",
+        apiKey: "from-env",
+        api: "openai-responses",
+        models: [
+          {
+            id: "gpt-4o-mini",
+            name: "GPT-4o Mini (via LiteLLM)",
+            reasoning: false,
+            input: ["text", "image"],
+            cost: { input: 0.15, output: 0.6, cacheRead: 0.075, cacheWrite: 0 },
+            contextWindow: 128000,
+            maxTokens: 16384,
+          },
+          {
+            id: "gpt-4o",
+            name: "GPT-4o (via LiteLLM)",
+            reasoning: false,
+            input: ["text", "image"],
+            cost: { input: 2.5, output: 10, cacheRead: 1.25, cacheWrite: 0 },
+            contextWindow: 128000,
+            maxTokens: 16384,
+          },
+        ],
+      },
+    },
+  },
+}
